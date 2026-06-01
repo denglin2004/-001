@@ -159,7 +159,7 @@ void S_Comand_Control_Car (void)
 
     // ===================== 空闲状�? =====================
     case STATE_IDLE:
-    //状态机参数初始化
+    //状态机参数初�?�化
         grindcar_ctrl.car.Forward_Count = 0;
         grindcar_ctrl.car.Backward_Count = 0;
         grindcar_ctrl.car.is_forward_phase = 1;
@@ -171,7 +171,7 @@ void S_Comand_Control_Car (void)
         g_main_state = STATE_PREPARE;
         g_sub_state = SUBSTATE_SEND_CMD;
         Drv_RGB_SetColor(RGB_COLOR_YELLOW);
-     //该状态机任务下各个模块参数初始化
+     //该状态机任务下各�?模块参数初�?�化
         grindcar_ctrl.foc_speed_set=g_dccp_temp.foc_speed;
         grindcar_ctrl.car_backward_speed_set=g_dccp_temp.car_speed;
         grindcar_ctrl.car_farward_speed_set=g_dccp_temp.car_speed;
@@ -179,7 +179,7 @@ void S_Comand_Control_Car (void)
         grindcar_ctrl.grind_down_set=g_dccp_temp.lift_high;
         break;
 
-    // ===================== 准�?�状�???? =====================
+    // ===================== 准�?�状�????? =====================
     case STATE_PREPARE:
         switch (g_sub_state) 
         {
@@ -356,7 +356,7 @@ void S_Comand_Control_Car (void)
         }
         break;
 
-    // ===================== �???向状�???? =====================
+    // ===================== �????向状�????? =====================
     case STATE_TURNING:
         switch (g_sub_state) {
         case SUBSTATE_SEND_CMD:
@@ -458,7 +458,7 @@ void S_Comand_Control_Car (void)
     }
 }
 
-// =================== OLED状态显�??? ===================
+// =================== OLED状态显�???? ===================
 
 static const char *GetMainStateName (MainState_t state) 
 {
