@@ -84,6 +84,7 @@ extern ESP32_RecData_t  ESP32_Yun_Reccar;
 extern ESP32_RecData_t  ESP32_Yun_RecLift;
 extern ESP32_RecData_t  ESP32_Yun_RecFOC;
 extern ESP32_RecData_t  ESP32_Yun_RecOneKeycmd;
+extern ESP32_RecData_t  ESP32_Xiaozhi_RecOneKeycmd;
 
 // ======================== 设备地址定义 ========================
 #define DEV_BROADCAST            0x01
@@ -95,6 +96,7 @@ extern ESP32_RecData_t  ESP32_Yun_RecOneKeycmd;
 #define DEV_LIFT_MODULE_ONENET   0x06
 #define DEV_GRINDER_HEAD_ONENET  0x07
 #define DEV_ONEKEY_ONENET        0x08
+#define DEV_ONEKEY_XIAOZHI       0x09
 
 // ========================功能码定义 ========================
 #define FUNC_ACTION_CTRL    0x01
