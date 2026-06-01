@@ -44,14 +44,14 @@ void onekey_task_run (void)
 
 static void SendCommand (ActionType_t action, uint8_t Seq_id) {
     switch (action) {
-    case ACTION_BUJING_UP: S_ComandTo_BuJing (3, 1, 1, 1600, Seq_id); break;
-    case ACTION_BUJING_DOWN: S_ComandTo_BuJing (3, 1, 0, 1600, Seq_id); break;
+    case ACTION_BUJING_UP: S_ComandTo_BuJing (3, 1, 1, grindcar_ctrl.grind_up_set, Seq_id); break;
+    case ACTION_BUJING_DOWN: S_ComandTo_BuJing (3, 1, 0, grindcar_ctrl.grind_down_set, Seq_id); break;
     case ACTION_BUJING_GRIND: S_ComandTo_BuJing (2, 1, 0, 0000, Seq_id); break;
-    case ACTION_CAR_FORWARD: S_ComandTo_Car (1, 40, 1, Seq_id); break;
-    case ACTION_CAR_BACKWARD: S_ComandTo_Car (2, 40, 1, Seq_id); break;
-    case ACTION_CAR_TURN_LEFT: S_ComandTo_Car (3, 50, 1, Seq_id); break;
+    case ACTION_CAR_FORWARD: S_ComandTo_Car (1, grindcar_ctrl.car_farward_speed_set, 1, Seq_id); break;
+    case ACTION_CAR_BACKWARD: S_ComandTo_Car (2, grindcar_ctrl.car_backward_speed_set, 1, Seq_id); break;
+    case ACTION_CAR_TURN_LEFT: S_ComandTo_Car (3, grindcar_ctrl.car_turn_speed_set, 1, Seq_id); break;
     case ACTION_CAR_STOP: S_ComandTo_Car (5, 0, 2, Seq_id); break;
-    case ACTION_FOC_START: S_ComandTo_FOC (1, grindcar_ctrl.foc.foc_speed_set, Seq_id); break;
+    case ACTION_FOC_START: S_ComandTo_FOC (1, grindcar_ctrl.foc_speed_set, Seq_id); break;
     case ACTION_FOC_STOP: S_ComandTo_FOC (2, 0, Seq_id); break;
     default: break;
     }
@@ -142,7 +142,7 @@ static SubState_t g_sub_state = SUBSTATE_NONE;
 
 void S_Comand_Control_Car (void) 
 {
-       grindcar_ctrl.foc.foc_speed_set=foc_speed;
+
     if (grindcar_ctrl.task_S_cnt == 2)
         return;
 
@@ -159,24 +159,27 @@ void S_Comand_Control_Car (void)
 
     // ===================== 空闲状�? =====================
     case STATE_IDLE:
+    //状态机参数初始化
         grindcar_ctrl.car.Forward_Count = 0;
         grindcar_ctrl.car.Backward_Count = 0;
         grindcar_ctrl.car.is_forward_phase = 1;
         grindcar_ctrl.car.stop_sent = 0;
-
-        grindcar_ctrl.foc.foc_speed_set =255;
         grindcar_ctrl.foc.foc_sent = 0;
         grindcar_ctrl.grind.grind_sent = 0;
-
         grindcar_ctrl.complete_step = 0;
         grindcar_ctrl.Loop_Finished = 0;
-
         g_main_state = STATE_PREPARE;
         g_sub_state = SUBSTATE_SEND_CMD;
         Drv_RGB_SetColor(RGB_COLOR_YELLOW);
+     //该状态机任务下各个模块参数初始化
+        grindcar_ctrl.foc_speed_set=g_dccp_temp.foc_speed;
+        grindcar_ctrl.car_backward_speed_set=g_dccp_temp.car_speed;
+        grindcar_ctrl.car_farward_speed_set=g_dccp_temp.car_speed;
+        grindcar_ctrl.car_turn_speed_set=g_dccp_temp.car_speed;
+        grindcar_ctrl.grind_down_set=g_dccp_temp.lift_high;
         break;
 
-    // ===================== 准备状�? =====================
+    // ===================== 准�?�状�???? =====================
     case STATE_PREPARE:
         switch (g_sub_state) 
         {
@@ -353,7 +356,7 @@ void S_Comand_Control_Car (void)
         }
         break;
 
-    // ===================== 转向状�? =====================
+    // ===================== �???向状�???? =====================
     case STATE_TURNING:
         switch (g_sub_state) {
         case SUBSTATE_SEND_CMD:
@@ -455,7 +458,7 @@ void S_Comand_Control_Car (void)
     }
 }
 
-// =================== OLED状态显示 ===================
+// =================== OLED状态显�??? ===================
 
 static const char *GetMainStateName (MainState_t state) 
 {

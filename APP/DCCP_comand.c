@@ -9,47 +9,48 @@
 #include "core_control.h"
 #include "SSD1306.h"
 
-// 时间系数，用于按钮按下时间计算
-#define K_time      1   
+
+DCCP_Temp_Typedef g_dccp_temp = {0};//存储彩屏参数设置的临时变量
+
 
 /**
- * @brief  数字转ASCII字符串函数（用于向大彩屏发送显示数据）
- * @param  str: 输出的ASCII字符串缓冲区
- * @param  dispWord: 要转换的无符号整数
- * @param  Len_Change: 转换后的字符串长度（不足补前导0）
- * @retval 无
+ * @brief  数字转ASCII字�?�串函数（用于向大彩屏发送显示数�?�?
+ * @param  str: 输出的ASCII字�?�串缓冲�?
+ * @param  dispWord: 要转换的无�?�号整数
+ * @param  Len_Change: �?换后的字符串长度（不足补前�??0�?
+ * @retval �?
  */
 void DatachagASCII (unsigned char * str, unsigned int dispWord , unsigned char Len_Change){
 	unsigned int tmp_Data;	
 	signed char i;	
 
 	tmp_Data = dispWord;
-	// 从低位到高位逐位转换
+	// 从低位到高位逐位�?�?
 	for( i = Len_Change; i >=0 ; i-- ) {	
 		if( tmp_Data > 0 ) {
-			str[ i ] = tmp_Data % 10 + 0x30;  // 数字转ASCII字符（0x30是'0'的ASCII码）
+			str[ i ] = tmp_Data % 10 + 0x30;  // 数字转ASCII字�?�（0x30�?'0'的ASCII码）
 			tmp_Data /= 10;
 		}
 		else {
-			str[ i ] = 0x30;  // 高位补0，不补空格
+			str[ i ] = 0x30;  // 高位�?0，不补空�?
 		}
 	}
 }
 
 /**
- * @brief  ASCII字符串转数字函数（用于解析大彩屏下发的数字输入框数据）
- * @param  Rstr: 输入的ASCII字符串缓冲区
- * @param  LEN_Rstr: 字符串最大长度
- * @retval 转换后的无符号整数
+ * @brief  ASCII字�?�串�?数字函数（用于解析大彩屏下发的数字输入�?�数�?�?
+ * @param  Rstr: 输入的ASCII字�?�串缓冲�?
+ * @param  LEN_Rstr: 字�?�串最大长�?
+ * @retval �?换后的无符号整数
  */
 unsigned int ASCIIchagData (unsigned char * Rstr, unsigned char LEN_Rstr){
 	unsigned int Rtmp_Data = 0 ;	
 	unsigned int Rtmp_Data0 = 0 ;
 	unsigned char Ri;	
-	// 从高位到低位逐位转换
+	// 从高位到低位逐位�?�?
 	for( Ri = 0 ; Ri < LEN_Rstr ; Ri++ ) {	
-		if( Rstr[Ri] != 0 ){  // 遇到字符串结束符'\0'停止
-			Rtmp_Data0 = (Rstr[ Ri ] - 0x30) ;  // ASCII字符转数字
+		if( Rstr[Ri] != 0 ){  // 遇到字�?�串结束�?'\0'停�??
+			Rtmp_Data0 = (Rstr[ Ri ] - 0x30) ;  // ASCII字�?�转数字
 			Rtmp_Data = Rtmp_Data*10 + Rtmp_Data0;
 		}
 		else{
@@ -60,45 +61,45 @@ unsigned int ASCIIchagData (unsigned char * Rstr, unsigned char LEN_Rstr){
 }
 
 /**
- * @brief  小车方向控制函数（处理手动模式下的按钮事件）
- * @param  idx: 方向索引（0-3对应前后左右）
- * @param  dir: 方向值（0x01-0x04对应前后左右）
- * @param  cmdParam: 按钮状态（0x01=按下，0x00=松开）
- * @retval 无
+ * @brief  小车方向控制函数（�?�理手动模式下的按钮事件�?
+ * @param  idx: 方向索引�?0-3对应前后左右�?
+ * @param  dir: 方向值（0x01-0x04对应前后左右�?
+ * @param  cmdParam: 按钮状态（0x01=按下�?0x00=松开�?
+ * @retval �?
  */
 static void Car_Dir_Control(uint8_t idx, uint8_t dir, uint8_t cmdParam)
 {
-    // 如果是自动模式（模式2），忽略手动控制
+    // 如果�?�?动模式（模式2），忽略手动控制
     if(g_car.ExForm_mode == 2) return;
 
-    // 按钮按下事件：只在第一次收到0x01时执行一次，防止循环重复触发
+    // 按钮按下事件：只在�??一次收�?0x01时执行一次，防�?�循�?重�?�触�?
     if((cmdParam == 0x01) && (g_car.timer_en[idx] == 0))
     {
         g_car.timer_en[idx] = 1;
-        g_car.start_tick[idx] = GetTick();  // 记录按钮按下的开始时间
+        g_car.start_tick[idx] = GetTick();  // 记录按钮按下的开始时�?
         g_car.run_flag[idx] = 0;            // 清除运动完成标志
         Drv_RGB_Green();                     // 按钮按下时亮绿灯
     }
-    // 按钮松开事件：只在第一次收到0x00时执行一次，防止循环重复触发
+    // 按钮松开事件：只在�??一次收�?0x00时执行一次，防�?�循�?重�?�触�?
     else if((cmdParam == 0x00) && (g_car.timer_en[idx] == 1))
     {
         g_car.timer_en[idx] = 0;
-        // 计算按钮按下的持续时间 = 小车需要运动的时间(ms)
+        // 计算按钮按下的持�?时间 = 小车需要运动的时间(ms)
         g_car.run_time[idx] = (GetTick() - g_car.start_tick[idx]) * TICK_MS;
         g_car.ExForm_mode = 1;                // 进入按钮点动模式
         g_car.ExForm_diretcion = dir;         // 设置小车运动方向
-        g_car.start_tick[idx] = GetTick();    // 重新计时，记录小车运动开始时间
+        g_car.start_tick[idx] = GetTick();    // 重新计时，�?�录小车运动开始时�?
     }
 }
 
 /**
- * @brief  按钮控制小车运动主函数（在主循环中周期性调用）
- * @param  无
- * @retval 无
+ * @brief  按钮控制小车运动主函数（在主�?�?�?周期性调�?�?
+ * @param  �?
+ * @retval �?
  */
 void Button_Control_Car(void)
 {
-  // 如果是自动模式，忽略手动控制
+  // 如果�?�?动模式，忽略手动控制
   if(g_car.ExForm_mode==2)
   {
   return;
@@ -106,17 +107,17 @@ void Button_Control_Car(void)
     uint8_t idx = 0;
     uint32_t pass_time = 0;
 
-    // 发送计数器，用于控制CAN指令发送频率
+    // 发送�?�数�?，用于控制CAN指令发送�?�率
     static u32 send_cnt[4] = {10,10,10,10};
-    // 发送阈值，每10次循环发送一次CAN指令
+    // 发送阈值，�?10次循�?发送一�?CAN指令
     const u32 SEND_CNT_THRESHOLD = 10;
 
-    // 只有在按钮点动模式下才执行
+    // �?有在按钮点动模式下才执�??
     if(g_car.ExForm_mode != 1) return;
-    // 没有设置方向时直接返回
+    // 没有设置方向时直接返�?
     if(g_car.ExForm_diretcion == 0) return;
 
-    // 根据方向值获取对应的索引
+    // 根据方向值获取�?�应的索�?
     switch(g_car.ExForm_diretcion)
     {
         case 0x01: idx = 0; break;  // 前进
@@ -129,22 +130,22 @@ void Button_Control_Car(void)
     // 如果该方向运动已经完成，直接返回
     if(g_car.run_flag[idx] == 1) return;
 
-    // 计算小车已经运动的时间
+    // 计算小车已经运动的时�?
     pass_time = (GetTick() - g_car.start_tick[idx]) * TICK_MS;
 
-    // 如果运动时间未到，继续发送运动指令
+    // 如果运动时间�?到，继续发送运动指�?
     if(pass_time < g_car.run_time[idx])
     { 
         send_cnt[idx]--;
-        // 控制发送频率，防止CAN总线拥堵
+        // 控制发送�?�率，防�?CAN总线拥堵
         if(send_cnt[idx] > 0)
         {
             return; 
         }
-        // 重置发送计数器
+        // 重置发送�?�数�?
         send_cnt[idx] = SEND_CNT_THRESHOLD;
 
-        // 根据方向发送对应的CAN控制指令
+        // 根据方向发送�?�应的CAN控制指令
         switch(g_car.ExForm_diretcion)
         {
             case 0x01: 
@@ -161,49 +162,49 @@ void Button_Control_Car(void)
                 break;
             case 0x04: 
                 S_ComandTo_Car(4, 50, 1, 4);  // 右转指令，速度50
-                Drv_RGB_SetColor(RGB_COLOR_MAGENTA); // 运动时亮紫灯
+                Drv_RGB_SetColor(RGB_COLOR_MAGENTA); // 运动时亮�?�?
                 break;
             default: break;
         }
     }
-    // 运动时间到，停止小车
+    // 运动时间到，停�?�小�?
     else
     {
-        S_ComandTo_Car(5, 0, 1, 5);  // 停止指令
-        Drv_RGB_SetColor(RGB_COLOR_RED);  // 停止时亮红灯
+        S_ComandTo_Car(5, 0, 1, 5);  // 停�?�指�?
+        Drv_RGB_SetColor(RGB_COLOR_RED);  // 停�?�时�?红灯
         send_cnt[idx] = SEND_CNT_THRESHOLD;
-        g_car.run_flag[idx] = 1;      // 标记该方向运动完成
+        g_car.run_flag[idx] = 1;      // 标�?��?�方向运动完�?
         g_car.ExForm_diretcion = 0;   // 清除方向
-        g_car.ExForm_mode = 0;        // 退出按钮点动模式
+        g_car.ExForm_mode = 0;        // 退出按�?点动模式
     }
 }
 
 /**
- * @brief  大彩屏接收数据组包函数（处理大小端和帧结构）
- * @param  无
- * @retval 无
- * @note   大彩屏是小端模式，16位数据低字节在前，这里手动交换字节顺序
+ * @brief  大彩屏接收数�?组包函数（�?�理大小�?和帧结构�?
+ * @param  �?
+ * @retval �?
+ * @note   大彩屏是小�??模式�?16位数�?低字节在前，这里手动交换字节顺序
  */
 void DCCP_RecDataPacket( void )
 {
 	 uint8_t Rec_i = 0;
-     // 帧头和前几个固定字段，手动交换16位数据的高低字节
+     // 帧头和前几个固定字�?�，手动交换16位数�?的高低字�?
      DCCP_Rec.str[0]  = DCCP_rx_t.DCCP_rx_buf[0];
 	 DCCP_Rec.str[1]  = DCCP_rx_t.DCCP_rx_buf[1];   
      DCCP_Rec.str[2]  = DCCP_rx_t.DCCP_rx_buf[2];   
-     DCCP_Rec.str[4]  = DCCP_rx_t.DCCP_rx_buf[3];  // 画面ID低字节                               
-	 DCCP_Rec.str[3]  = DCCP_rx_t.DCCP_rx_buf[4];  // 画面ID高字节
-	 DCCP_Rec.str[6]  = DCCP_rx_t.DCCP_rx_buf[5];  // 控件ID低字节
-	 DCCP_Rec.str[5]  = DCCP_rx_t.DCCP_rx_buf[6];  // 控件ID高字节
+     DCCP_Rec.str[4]  = DCCP_rx_t.DCCP_rx_buf[3];  // 画面ID低字�?                               
+	 DCCP_Rec.str[3]  = DCCP_rx_t.DCCP_rx_buf[4];  // 画面ID高字�?
+	 DCCP_Rec.str[6]  = DCCP_rx_t.DCCP_rx_buf[5];  // 控件ID低字�?
+	 DCCP_Rec.str[5]  = DCCP_rx_t.DCCP_rx_buf[6];  // 控件ID高字�?
 	 DCCP_Rec.str[7]  = DCCP_rx_t.DCCP_rx_buf[7];  // 事件类型
 
-	// 复制可变长度的参数部分
+	// 复制�?变长度的参数部分
 	for(Rec_i = 0; Rec_i <= (DCCP_rx_t.DCCP_rx_len - 13); Rec_i++)   				
 	{
 		 DCCP_Rec.str[8+Rec_i] = DCCP_rx_t.DCCP_rx_buf[8+Rec_i]; 		
 	}
 
-	// 组装32位帧尾（大端模式，高字节在前）
+	// 组�??32位帧尾（大�??模式，高字节在前�?
 	DCCP_Rec.sDCCP.Frame_Tail  = 
 	((unsigned long )DCCP_rx_t.DCCP_rx_buf[DCCP_rx_t.DCCP_rx_len-4]<<24)|
 	((unsigned long )DCCP_rx_t.DCCP_rx_buf[DCCP_rx_t.DCCP_rx_len-3]<<16)|
@@ -212,22 +213,21 @@ void DCCP_RecDataPacket( void )
 }
 
 /**
- * @brief  大彩屏命令处理主函数（解析并执行大彩屏下发的所有指令）
- * @param  无
- * @retval 无
+ * @brief  大彩屏命令�?�理主函数（解析并执行大彩屏下发的所有指令）
+ * @param  �?
+ * @retval �?
  */
-u8 foc_speed=0;
 void DCCP_comand_process(void)  
 {
-    // 画面ID=0x01：小车自动S路径规划参数输入画面
+    // 画面ID=0x01：小车自动S�?径�?�划参数输入画面
     if(DCCP_Rec.sDCCP.Frame_ImageID==0x01)
     {
         switch(DCCP_Rec.sDCCP.Frame_ControlID)        // 根据控件ID处理不同命令
         {
-            case SET_CMD_DMTHIGHT:      // 打磨头高度设置输入框
+            case SET_CMD_DMTHIGHT:      // 打磨头高度�?�置输入�?
 			{
             u16 high_temp = 0;
-            // 手动解析2位ASCII数字（大彩屏下发的是ASCII字符串）
+            // 手动解析2位ASCII数字（大彩屏下发的是ASCII字�?�串�?
             high_temp += (DCCP_Rec.sDCCP.Frame_param[0] != 0) ? (DCCP_Rec.sDCCP.Frame_param[0] - 48) * 10  : 0;
             high_temp += (DCCP_Rec.sDCCP.Frame_param[1] != 0) ? (DCCP_Rec.sDCCP.Frame_param[1] - 48)      : 0;
 
@@ -236,59 +236,59 @@ void DCCP_comand_process(void)
 			// SSD1306_ShowNum(00, 6, DCCP_Rec.sDCCP.Frame_param[0]-48 , 3, 8, 0);
 			// SSD1306_ShowNum(40, 6, DCCP_Rec.sDCCP.Frame_param[1]-48 , 3, 8, 0);
 			// SSD1306_ShowNum(80, 6, DCCP_Rec.sDCCP.Frame_param[2]-48, 3, 8, 0);
-		    // 向步进电机发送高度控制指令
+		    // 向�?�进电机发送高度控制指�?
 		    S_ComandTo_BuJing (3, 1, 1, high_temp, 10);	
-			DCCP_Rec.sDCCP.Frame_ControlID=0;  // 清除控件ID，防止重复处理
+			DCCP_Rec.sDCCP.Frame_ControlID=0;  // 清除控件ID，防止重复�?�理
 			} break;
 
-            case SET_CMD_DMTUP:        // 打磨头上升按钮
+            case SET_CMD_DMTUP:        // 打磨头上升按�?
 			{
 			  DCCP_Rec.sDCCP.Frame_ControlID=0;
-			  // 按钮松开时执行（防止长按重复触发）
+			  // 按钮松开时执行（防�?�长按重复触发）
 			  if (DCCP_Rec.sDCCP.Frame_param[1]==0x00) 
 			  {
-		      S_ComandTo_BuJing (3, 1, 1, 800, 11);	// 上升800步
+		      S_ComandTo_BuJing (3, 1, 1, 800, 11);	// 上升800�?
 			  }
 			} 
 			break;
-            case SET_CMD_DMTDOWN:       	// 打磨头下降按钮
+            case SET_CMD_DMTDOWN:       	// 打磨头下降按�?
 			{
 			  DCCP_Rec.sDCCP.Frame_ControlID=0;
-			  // 按钮松开时执行
+			  // 按钮松开时执�?
 			  if (DCCP_Rec.sDCCP.Frame_param[1]==0x00) 
 			  {
-		      S_ComandTo_BuJing (3, 1, 1, 800, 12);	// 下降800步
+		      S_ComandTo_BuJing (3, 1, 1, 800, 12);	// 下降800�?
 			  }
 			} break;
 
-			case 0x0A: g_car.Run_S_X = DCCP_Rec.sDCCP.Frame_param[0]; break;  // X轴步数设置
-            case 0x0B: g_car.Run_S_Y = DCCP_Rec.sDCCP.Frame_param[0]; break;  // Y轴步数设置
+			case 0x0A: g_car.Run_S_X = DCCP_Rec.sDCCP.Frame_param[0]; break;  // X轴�?�数设置
+            case 0x0B: g_car.Run_S_Y = DCCP_Rec.sDCCP.Frame_param[0]; break;  // Y轴�?�数设置
             default: break;
         }
 
-        // 如果X轴和Y轴步数都已设置，启动自动S路径规划
+        // 如果X轴和Y轴�?�数都已设置，启动自动S�?径�?�划
         if(g_car.Run_S_X && g_car.Run_S_Y)
 		{
 			static uint8_t Run_S_X_old,Run_S_Y_old=0;
-            // 只有当步数发生变化时才重新启动任务
+            // �?有当步数发生变化时才重新�?动任�?
             if (g_car.Run_S_X != Run_S_X_old || g_car.Run_S_Y != Run_S_Y_old)
             {
-                grindcar_ctrl.task_S_cnt = 1;              // 启动S路径任务
-				grindcar_ctrl.Step_Total = g_car.Run_S_X-48;  // X轴总步数（ASCII转数字）
-                grindcar_ctrl.Loop_Total = g_car.Run_S_Y-48;  // Y轴总循环数（ASCII转数字）
+                grindcar_ctrl.task_S_cnt = 1;              // �?动S�?径任�?
+				grindcar_ctrl.Step_Total = g_car.Run_S_X-48;  // X轴总�?�数（ASCII�?数字�?
+                grindcar_ctrl.Loop_Total = g_car.Run_S_Y-48;  // Y轴总循�?数（ASCII�?数字�?
                 Run_S_X_old = g_car.Run_S_X;
                 Run_S_Y_old = g_car.Run_S_Y;
             }
-            // 清除手动模式状态
+            // 清除手动模式状�?
             g_car.ExForm_diretcion = 0;
             memset(g_car.timer_en, 0, sizeof(g_car.timer_en));
         }
     }
 
-    // 画面ID=0x02：小车手动控制画面
+    // 画面ID=0x02：小车手动控制画�?
     if(DCCP_Rec.sDCCP.Frame_ImageID==0x02)    
     {
-		uint8_t par = DCCP_Rec.sDCCP.Frame_param[1];  // 按钮状态（0x01=按下，0x00=松开）
+		uint8_t par = DCCP_Rec.sDCCP.Frame_param[1];  // 按钮状态（0x01=按下�?0x00=松开�?
         switch(DCCP_Rec.sDCCP.Frame_ControlID) 
         {
             case SET_CMD_CAR_FORWORD: 	Car_Dir_Control(0, 0x01, par); break;  // 前进按钮
@@ -299,42 +299,42 @@ void DCCP_comand_process(void)
         }
     }
 
-    // 画面ID=0x03：参数调试画面
+    // 画面ID=0x03：参数调试画�?
     if(DCCP_Rec.sDCCP.Frame_ImageID==0x03)
     {
         switch(DCCP_Rec.sDCCP.Frame_ControlID) 
         {
             case 0x03: 	
-			g_car.Run_distance=DCCP_Rec.sDCCP.Frame_param[3];  // 单次运行距离
+			g_car.Run_distance=DCCP_Rec.sDCCP.Frame_param[3];  // 单�?�运行距�?
 			DCCP_Rec.sDCCP.Frame_ControlID=0;
 			break;
             case 0x04: 
-			g_car.Run_cnt_x=DCCP_Rec.sDCCP.Frame_param[3];     // X轴运行次数
+			g_car.Run_cnt_x=DCCP_Rec.sDCCP.Frame_param[3];     // X轴运行�?�数
 			DCCP_Rec.sDCCP.Frame_ControlID=0; 
             break;
             case 0x05:  
-			g_car.Run_cnt_y=DCCP_Rec.sDCCP.Frame_param[3];     // Y轴运行次数
+			g_car.Run_cnt_y=DCCP_Rec.sDCCP.Frame_param[3];     // Y轴运行�?�数
 			DCCP_Rec.sDCCP.Frame_ControlID=0; 
             break;
             case 0x06: 
-			g_grind.high=DCCP_Rec.sDCCP.Frame_param[3];        // 打磨头高度
-			S_ComandTo_BuJing (3, 1, 1, g_grind.high, 12);     // 发送高度控制指令
+			g_grind.high=DCCP_Rec.sDCCP.Frame_param[3];        // 打磨头高�?
+			S_ComandTo_BuJing (3, 1, 1, g_grind.high, 12);     // 发送高度控制指�?
 			DCCP_Rec.sDCCP.Frame_ControlID=0;	
 			break;
 			case 0x07:
-			g_grind.high=DCCP_Rec.sDCCP.Frame_param[3];        // 打磨头高度（备用）
+			g_grind.high=DCCP_Rec.sDCCP.Frame_param[3];        // 打磨头高度（备用�?
 			S_ComandTo_BuJing (3, 1, 1, g_grind.high, 12);
 			DCCP_Rec.sDCCP.Frame_ControlID=0;	 	
             break;
             case 0x08:  
-			g_grind.high=DCCP_Rec.sDCCP.Frame_param[3];        // 打磨头高度（备用）
+			g_grind.high=DCCP_Rec.sDCCP.Frame_param[3];        // 打磨头高度（备用�?
 			S_ComandTo_BuJing (3, 1, 1, g_grind.high, 12);
 			DCCP_Rec.sDCCP.Frame_ControlID=0;	
 			break;
             case 0x09:  
-			g_foc.speed=(u8)((float)(DCCP_Rec.sDCCP.Frame_param[3]/100.0)*255);         // FOC电机转速
-			foc_speed=g_foc.speed;
-            S_ComandTo_FOC(1,foc_speed, 15) ;              // 发送转速控制指令
+			g_foc.speed=(u8)((float)(DCCP_Rec.sDCCP.Frame_param[3]/100.0)*255);         // FOC电机�?�?
+			g_dccp_temp.foc_speed=g_foc.speed;
+            S_ComandTo_FOC(1,g_dccp_temp.foc_speed, 15) ;              // 发送转速控制指�?
 			DCCP_Rec.sDCCP.Frame_ControlID=0;			
 			break;
 
@@ -345,35 +345,35 @@ void DCCP_comand_process(void)
 }  
 
 /**
- * @brief  大彩屏显示数据处理函数（周期性向大彩屏发送实时数据）
- * @param  无
- * @retval 无
- * @note   采用轮询方式，每次只发送一个数据，防止串口拥堵
+ * @brief  大彩屏显示数�?处理函数（周期性向大彩屏发送实时数�?�?
+ * @param  �?
+ * @retval �?
+ * @note   采用�?询方式，每�?�只发送一�?数据，防�?串口拥堵
  */
 void DCCP_Disp_Process(void)
 {
-    // 临时测试数据，实际项目中应从CAN总线获取FOC和步进电机的实时数据
-	  Cur_DMT_Speed = grindcar_ctrl.foc.foc_speed_set ;	
+    // 临时测试数据，实际项�?�?应从CAN总线获取FOC和�?�进电机的实时数�?
+	  Cur_DMT_Speed = 100 ;	
 	  Cur_DMT_Temp  = 22 ; 
 	  Cur_DMT_VOL   = 24 ;
 	  Cur_DMT_I     = 1 ;
 	  Cur_DMT_High  = 5; 
 
-	// 轮询发送不同的显示数据
+	// �?询发送不同的显示数据
 	switch(Disp_Turn){
-		case DISP_DMTSPEED:  // 显示FOC电机转速
+		case DISP_DMTSPEED:  // 显示FOC电机�?�?
 				DCCP_Send.sDCCP.Frame_Sendcmd_type = 0xB1 ;
 				DCCP_Send.sDCCP.Frame_Sendctrl_msg = 0x10 ;
 				DCCP_Send.sDCCP.Frame_SendImageID  = 0x0001 ;
 				DCCP_Send.sDCCP.Frame_SendControlID = 0x001A;
-				// 数值限幅，防止超过显示范围
+				// 数值限幅，防�?�超过显示范�?
 				if( Cur_DMT_Speed >= 999){
 				  Cur_DMT_Speed = 999 ;      
 				}
-				// 数字转ASCII字符串
+				// 数字转ASCII字�?�串
 				DatachagASCII ( DCCP_Send.sDCCP.Frame_Sendparam,  Cur_DMT_Speed, 2 );
-				DCCP_SendFrameInfo( 3 );	// 发送数据帧
-        Disp_Turn = DISP_DMTTEMP ;  // 切换到下一个显示项
+				DCCP_SendFrameInfo( 3 );	// 发送数�?�?
+        Disp_Turn = DISP_DMTTEMP ;  // 切换到下一�?显示�?
 				break;
 		
 		case DISP_DMTTEMP:  // 显示FOC电机温度
@@ -414,7 +414,7 @@ void DCCP_Disp_Process(void)
 				DCCP_SendFrameInfo( 3 );		
         Disp_Turn = DISP_DMTHIGH ;
 				break;	
-	 case DISP_DMTHIGH:  // 显示打磨头高度
+	 case DISP_DMTHIGH:  // 显示打磨头高�?
 				DCCP_Send.sDCCP.Frame_Sendcmd_type = 0xB1 ;
 				DCCP_Send.sDCCP.Frame_Sendctrl_msg = 0x10 ;
 				DCCP_Send.sDCCP.Frame_SendImageID  = 0x0001 ;
@@ -436,36 +436,36 @@ void DCCP_Disp_Process(void)
 				}
 				DatachagASCII ( DCCP_Send.sDCCP.Frame_Sendparam,  grindcar_ctrl.Loop_Finished ,2 );
 				DCCP_SendFrameInfo( 3 );				
-				DCCP_SendFrameInfo( 3 );	// 重复发送一次，确保可靠
-        Disp_Turn = DISP_DMTSPEED ;  // 循环回到第一个显示项
+				DCCP_SendFrameInfo( 3 );	// 重�?�发送一次，�?保可�?
+        Disp_Turn = DISP_DMTSPEED ;  // �?�?回到�?一�?显示�?
 				break;	
 	 
 		default: 
-					// 默认显示转速
+					// 默�?�显示转�?
 					Disp_Turn = DISP_DMTSPEED ;
 				break;
 	}
 }
 
 /**
- * @brief  大彩屏数据帧发送函数（组装并发送完整的通信帧）
- * @param  Send_Len: 参数部分的长度
- * @retval 无
- * @note   处理大小端转换，手动交换16位数据的高低字节
+ * @brief  大彩屏数�?帧发送函数（组�?�并发送完整的通信帧）
+ * @param  Send_Len: 参数部分的长�?
+ * @retval �?
+ * @note   处理大小�?�?�?，手动交�?16位数�?的高低字�?
  */
 void DCCP_SendFrameInfo(uint16_t Send_Len )
 {
 	uint8_t  Frame_Info[32];
 	uint8_t i = 0;
 
-	// 组装帧头和固定字段，手动交换16位数据的高低字节（适配大彩屏小端模式）
+	// 组�?�帧头和固定字�?�，手动交换16位数�?的高低字节（适配大彩屏小�?模式�?
 	Frame_Info[0] = DCCP_Send.str[0] ; 			
 	Frame_Info[1] = DCCP_Send.str[1] ; 			
 	Frame_Info[2] = DCCP_Send.str[2]; 		  
-	Frame_Info[3] = DCCP_Send.str[4] ; 	// 画面ID低字节		
-	Frame_Info[4] = DCCP_Send.str[3] ; 	// 画面ID高字节
-	Frame_Info[5] = DCCP_Send.str[6]; 	// 控件ID低字节	  
-	Frame_Info[6] = DCCP_Send.str[5] ; 	// 控件ID高字节			
+	Frame_Info[3] = DCCP_Send.str[4] ; 	// 画面ID低字�?		
+	Frame_Info[4] = DCCP_Send.str[3] ; 	// 画面ID高字�?
+	Frame_Info[5] = DCCP_Send.str[6]; 	// 控件ID低字�?	  
+	Frame_Info[6] = DCCP_Send.str[5] ; 	// 控件ID高字�?			
 
 	// 复制参数部分
 	for(i = 0; i < Send_Len; i++)   				
@@ -473,12 +473,12 @@ void DCCP_SendFrameInfo(uint16_t Send_Len )
 		Frame_Info[7+i] = DCCP_Send.sDCCP.Frame_Sendparam[i]; 		
 	}
 
-	// 组装帧尾
+	// 组�?�帧�?
     Frame_Info[7+Send_Len] =  DCCP_Send.str[16] ; 
 	Frame_Info[8+Send_Len] =  DCCP_Send.str[17] ; 
 	Frame_Info[9+Send_Len] =  DCCP_Send.str[18] ; 
 	Frame_Info[10+Send_Len] = DCCP_Send.str[19] ; 
 
-	// 通过串口2发送数据帧到大彩屏
+	// 通过串口2发送数�?帧到大彩�?
 	MW_Send(MW_PORT_2_DCCP,Frame_Info, (11+Send_Len), 0);
 }

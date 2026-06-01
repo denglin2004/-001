@@ -65,7 +65,7 @@
  *  OLED_VCC      PE4               OLED电源
  *  OLED_GND      PE3               OLED地线
  *  RGB LED       bsp_rgb           状态指示灯
- *  蜂鸣器        bsp_beep          提示音
+ *  蜂鸣器         bsp_beep          提示音
  *  ADC           bsp_adc           模拟采集
  *  SPI Flash     bsp_spi           参数存储
  *
