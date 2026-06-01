@@ -12,16 +12,7 @@
 
 #include "SSD1306.h"
 
-// void TEST_Control_Car (void) {
-//     static u32 time = 0;
-//     static u8 test_state = 0;
-//     (GetTick() - time >= 2000) ? (
-//     time = GetTick(),
-//     test_state = (test_state + 1) % 3,
-//     test_state == 0 ? S_ComandTo_Car (1, 10, 1, 1) : test_state == 1 ? S_ComandTo_Car (2, 10, 1, 2)
-//     : S_ComandTo_Car (3, 10, 1, 3))
-//     : (void)0;
-// }
+
 
 void mian_task_run (void)
 {
