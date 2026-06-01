@@ -11,19 +11,39 @@
 
 
 #include "SSD1306.h"
-
-
-
+S_TaskRequest_t g_s_task_req={0};
 void mian_task_run (void)
 {
     DCCP_comand_process();
-    ESP32_comand_process();
+    ESP32_comand_process();       // 处理小智 + 云端指令
 }
 
 void onekey_task_run (void)
 {
 
     Button_Control_Car();
+
+    // ========== 消费统一任务请求：将 g_s_task_req 参数桥接到 grindcar_ctrl ==========
+    if (g_s_task_req.trigger == 1)
+    {
+        g_s_task_req.trigger = 0;                     // 清除触发标志，防止重复触发
+
+        grindcar_ctrl.Step_Total  = g_s_task_req.step_x;
+        grindcar_ctrl.Loop_Total  = g_s_task_req.loop_y;
+        grindcar_ctrl.foc_speed_set           = g_s_task_req.foc_speed;
+        grindcar_ctrl.car_farward_speed_set   = g_s_task_req.car_speed;
+        grindcar_ctrl.car_backward_speed_set  = g_s_task_req.car_speed;
+        grindcar_ctrl.car_turn_speed_set      = g_s_task_req.car_speed;
+        grindcar_ctrl.grind_down_set          = g_s_task_req.lift_high;
+
+        grindcar_ctrl.task_S_cnt  = 1;                // 标记任务开始
+        grindcar_ctrl.complete_step = 0;
+        grindcar_ctrl.Loop_Finished = 0;
+        memset(&grindcar_ctrl.car, 0, sizeof(grindcar_ctrl.car));
+        memset(&grindcar_ctrl.foc, 0, sizeof(grindcar_ctrl.foc));
+        memset(&grindcar_ctrl.grind, 0, sizeof(grindcar_ctrl.grind));
+    }
+
     S_Comand_Control_Car();
  // TEST_Control_Car();
 }
@@ -126,24 +146,12 @@ static int8_t CheckResponse (ActionType_t action, uint32_t timeout_ms, uint32_t 
     return 0;
 }
 
- S_Comand_Ctrl_Params_t grindcar_ctrl = {0};
- S_TaskRequest_t g_s_task_req = {0};
+S_Comand_Ctrl_Params_t grindcar_ctrl = {0};
 static MainState_t g_main_state = STATE_IDLE;
 static SubState_t g_sub_state = SUBSTATE_NONE;
 
-void S_Comand_Control_Car (void)
+void S_Comand_Control_Car (void) 
 {
-    // ========== 统一触发入口：任意源写入 g_s_task_req.trigger=1 即启动 ==========
-    if (g_s_task_req.trigger && grindcar_ctrl.task_S_cnt == 0)
-    {
-        if (g_s_task_req.step_x > 0 && g_s_task_req.loop_y > 0)
-        {
-            grindcar_ctrl.Step_Total = g_s_task_req.step_x;
-            grindcar_ctrl.Loop_Total = g_s_task_req.loop_y;
-            grindcar_ctrl.task_S_cnt = 1;
-        }
-        g_s_task_req.trigger = 0;
-    }
 
     if (grindcar_ctrl.task_S_cnt == 2)
         return;
@@ -173,12 +181,12 @@ void S_Comand_Control_Car (void)
         g_main_state = STATE_PREPARE;
         g_sub_state = SUBSTATE_SEND_CMD;
         Drv_RGB_SetColor(RGB_COLOR_YELLOW);
-     //该状态机任务下各�?模块参数初�?�化（统一从 g_s_task_req 读取）
-        grindcar_ctrl.foc_speed_set          = g_s_task_req.foc_speed;
-        grindcar_ctrl.car_backward_speed_set = g_s_task_req.car_speed;
-        grindcar_ctrl.car_farward_speed_set  = g_s_task_req.car_speed;
-        grindcar_ctrl.car_turn_speed_set     = g_s_task_req.car_speed;
-        grindcar_ctrl.grind_down_set         = g_s_task_req.lift_high;
+     //该状态机任务下各�?模块参数初�?�化
+        grindcar_ctrl.foc_speed_set=g_dccp_temp.foc_speed;
+        grindcar_ctrl.car_backward_speed_set=g_dccp_temp.car_speed;
+        grindcar_ctrl.car_farward_speed_set=g_dccp_temp.car_speed;
+        grindcar_ctrl.car_turn_speed_set=g_dccp_temp.car_speed;
+        grindcar_ctrl.grind_down_set=g_dccp_temp.lift_high;
         break;
 
     // ===================== 准�?�状�????? =====================
@@ -199,6 +207,11 @@ void S_Comand_Control_Car (void)
                 g_sub_state = SUBSTATE_WAIT_TIME;
                 grindcar_ctrl.time_wait = GetTick();
             }
+            else if((GetTick()- grindcar_ctrl.time_wait)>=2000)
+            {
+            g_sub_state = SUBSTATE_SEND_CMD;  
+            }
+
         }break;
 
         case SUBSTATE_WAIT_TIME:
@@ -227,9 +240,14 @@ void S_Comand_Control_Car (void)
 
         case SUBSTATE_WAIT_ACK: {
             int8_t result = CheckResponse (ACTION_FOC_STOP, 80000, grindcar_ctrl.time_wait);
-            if (result == 1 || result == -1) {
+            if (result == 1 || result == -1) 
+            {
                 g_sub_state = SUBSTATE_WAIT_TIME;
                 grindcar_ctrl.time_wait = GetTick();
+            }
+            else if((GetTick()- grindcar_ctrl.time_wait)>=2000)
+            {
+             g_sub_state = SUBSTATE_SEND_CMD; 
             }
         } break;
 
@@ -288,11 +306,16 @@ void S_Comand_Control_Car (void)
             }
             {
                 int8_t result = CheckResponse (ACTION_CAR_STOP, 80000, grindcar_ctrl.car.time_stop);
-                if (result == 1 || result == -1) {
+                if (result == 1 || result == -1) 
+                {
                     grindcar_ctrl.car.stop_sent = 0;
                     grindcar_ctrl.foc.foc_sent = 0;
                     g_sub_state = SUBSTATE_FOC_START;
                 }
+               else if((GetTick()-grindcar_ctrl.car.time_stop)>=2000)
+               {
+               g_sub_state = SUBSTATE_STOP; 
+               }
             }
             break;
 
@@ -307,11 +330,16 @@ void S_Comand_Control_Car (void)
 
             int8_t result = CheckResponse (ACTION_FOC_START, 80000, grindcar_ctrl.foc.time_foc);
 
-            if ((result == 1 || result == -1) && ((GetTick() - grindcar_ctrl.foc.time_foc) >= 2000))
+            if (result == 1 || result == -1)
             {
                 foc_init = 0;
                 grindcar_ctrl.grind.grind_sent = 0;
                 g_sub_state = SUBSTATE_GRINDING;
+            }
+             else if((GetTick()-grindcar_ctrl.foc.time_foc)>=2000)
+            {
+            g_sub_state =SUBSTATE_FOC_START;
+            foc_init = 0; 
             }
         } break;
 
@@ -349,6 +377,11 @@ void S_Comand_Control_Car (void)
                         g_sub_state = SUBSTATE_SEND_CMD;
                     }
                 }
+               else if((GetTick()- grindcar_ctrl.grind.time_grind)>=2000)
+               {
+               g_sub_state =SUBSTATE_GRINDING;
+               grindcar_ctrl.grind.grind_sent = 0; 
+               }
             }
             break;
 
@@ -414,6 +447,11 @@ void S_Comand_Control_Car (void)
                         }
                     }
                 }
+                else if((GetTick()- grindcar_ctrl.car.time_stop)>=2000)
+               {
+               g_sub_state =SUBSTATE_STOP; 
+               grindcar_ctrl.car.stop_sent=0;
+               }
             }
             break;
 
@@ -453,6 +491,10 @@ void S_Comand_Control_Car (void)
                   grindcar_ctrl.complete_step = 0;
                   g_main_state = STATE_IDLE;
                   grindcar_ctrl.task_S_cnt = 2;
+              }
+              else if((GetTick()- grindcar_ctrl.foc.time_foc)>=2000)
+              {
+              grindcar_ctrl.complete_step = 2;
               }
           } break;
         }
