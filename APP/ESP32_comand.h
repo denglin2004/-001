@@ -4,6 +4,6 @@
 #include "usart_app.h"
 
 void ESP32_RecDataPacket( void );
-void ESP32_comand_process(void) ;
+void ESP32_comand_process(void);
 void data_to_onnet(void);
 #endif  

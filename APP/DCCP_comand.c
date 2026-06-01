@@ -266,16 +266,20 @@ void DCCP_comand_process(void)
             default: break;
         }
 
-        // 如果X轴和Y轴�?�数都已设置，启动自动S�?径�?�划
+        // 如果X轴和Y轴�?�数都已设置，写入统一任务请求结构
         if(g_car.Run_S_X && g_car.Run_S_Y)
 		{
 			static uint8_t Run_S_X_old,Run_S_Y_old=0;
-            // �?有当步数发生变化时才重新�?动任�?
+            // �?有当步数发生变化时才重新触发
             if (g_car.Run_S_X != Run_S_X_old || g_car.Run_S_Y != Run_S_Y_old)
             {
-                grindcar_ctrl.task_S_cnt = 1;              // �?动S�?径任�?
-				grindcar_ctrl.Step_Total = g_car.Run_S_X-48;  // X轴总�?�数（ASCII�?数字�?
-                grindcar_ctrl.Loop_Total = g_car.Run_S_Y-48;  // Y轴总循�?数（ASCII�?数字�?
+                g_s_task_req.step_x    = g_car.Run_S_X - 48;  // ASCII转数字
+                g_s_task_req.loop_y    = g_car.Run_S_Y - 48;
+                g_s_task_req.foc_speed = g_dccp_temp.foc_speed;
+                g_s_task_req.car_speed = g_dccp_temp.car_speed;
+                g_s_task_req.lift_high = g_dccp_temp.lift_high;
+                g_s_task_req.source    = PARAM_SRC_DCCP;
+                g_s_task_req.trigger   = 1;                    // 请求启动S任务
                 Run_S_X_old = g_car.Run_S_X;
                 Run_S_Y_old = g_car.Run_S_Y;
             }

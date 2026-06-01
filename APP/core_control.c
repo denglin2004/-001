@@ -17,8 +17,7 @@
 void mian_task_run (void)
 {
     DCCP_comand_process();
- //   ESP32XIAOZHI_comand_process();
- //   ESP32YUNDUAN_comand_process() ;
+    ESP32_comand_process();
 }
 
 void onekey_task_run (void)
@@ -128,11 +127,23 @@ static int8_t CheckResponse (ActionType_t action, uint32_t timeout_ms, uint32_t 
 }
 
  S_Comand_Ctrl_Params_t grindcar_ctrl = {0};
+ S_TaskRequest_t g_s_task_req = {0};
 static MainState_t g_main_state = STATE_IDLE;
 static SubState_t g_sub_state = SUBSTATE_NONE;
 
-void S_Comand_Control_Car (void) 
+void S_Comand_Control_Car (void)
 {
+    // ========== 统一触发入口：任意源写入 g_s_task_req.trigger=1 即启动 ==========
+    if (g_s_task_req.trigger && grindcar_ctrl.task_S_cnt == 0)
+    {
+        if (g_s_task_req.step_x > 0 && g_s_task_req.loop_y > 0)
+        {
+            grindcar_ctrl.Step_Total = g_s_task_req.step_x;
+            grindcar_ctrl.Loop_Total = g_s_task_req.loop_y;
+            grindcar_ctrl.task_S_cnt = 1;
+        }
+        g_s_task_req.trigger = 0;
+    }
 
     if (grindcar_ctrl.task_S_cnt == 2)
         return;
@@ -150,7 +161,7 @@ void S_Comand_Control_Car (void)
 
     // ===================== 空闲状�? =====================
     case STATE_IDLE:
-    //状态机参数初�?�化
+    //状态机参数初�?�化
         grindcar_ctrl.car.Forward_Count = 0;
         grindcar_ctrl.car.Backward_Count = 0;
         grindcar_ctrl.car.is_forward_phase = 1;
@@ -162,15 +173,15 @@ void S_Comand_Control_Car (void)
         g_main_state = STATE_PREPARE;
         g_sub_state = SUBSTATE_SEND_CMD;
         Drv_RGB_SetColor(RGB_COLOR_YELLOW);
-     //该状态机任务下各�?模块参数初�?�化
-        grindcar_ctrl.foc_speed_set=g_dccp_temp.foc_speed;
-        grindcar_ctrl.car_backward_speed_set=g_dccp_temp.car_speed;
-        grindcar_ctrl.car_farward_speed_set=g_dccp_temp.car_speed;
-        grindcar_ctrl.car_turn_speed_set=g_dccp_temp.car_speed;
-        grindcar_ctrl.grind_down_set=g_dccp_temp.lift_high;
+     //该状态机任务下各�?模块参数初�?�化（统一从 g_s_task_req 读取）
+        grindcar_ctrl.foc_speed_set          = g_s_task_req.foc_speed;
+        grindcar_ctrl.car_backward_speed_set = g_s_task_req.car_speed;
+        grindcar_ctrl.car_farward_speed_set  = g_s_task_req.car_speed;
+        grindcar_ctrl.car_turn_speed_set     = g_s_task_req.car_speed;
+        grindcar_ctrl.grind_down_set         = g_s_task_req.lift_high;
         break;
 
-    // ===================== 准�?�状�????? =====================
+    // ===================== 准�?�状�????? =====================
     case STATE_PREPARE:
         switch (g_sub_state) 
         {
@@ -347,7 +358,7 @@ void S_Comand_Control_Car (void)
         }
         break;
 
-    // ===================== �????向状�????? =====================
+    // ===================== �????向状�????? =====================
     case STATE_TURNING:
         switch (g_sub_state) {
         case SUBSTATE_SEND_CMD:
@@ -449,7 +460,7 @@ void S_Comand_Control_Car (void)
     }
 }
 
-// =================== OLED状态显�???? ===================
+// =================== OLED状态显�???? ===================
 
 static const char *GetMainStateName (MainState_t state) 
 {

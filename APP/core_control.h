@@ -25,6 +25,14 @@ typedef enum {
     SUBSTATE_FOC_STOP,             // 磨头停�??
 } SubState_t;
 
+// =================== 参数来源枚举 ===================
+typedef enum {
+    PARAM_SRC_NONE = 0,
+    PARAM_SRC_DCCP,
+    PARAM_SRC_XIAOZHI,
+    PARAM_SRC_YUNDUAN,
+} ParamSource_t;
+
 // =================== 动作类型枚举 ===================
 typedef enum {
     ACTION_NONE,                   // 无动�?
@@ -92,7 +100,20 @@ typedef struct {
     
 } S_Comand_Ctrl_Params_t;
 
+// =================== 统一任务触发参数结构体 ===================
+typedef struct {
+    ParamSource_t source;        // 参数来源
+    uint8_t       step_x;        // X轴步数
+    uint8_t       loop_y;        // Y轴循环数
+    uint8_t       foc_speed;     // FOC转速
+    uint8_t       car_speed;     // 底盘速度
+    uint16_t      lift_high;     // 升降高度
+    uint8_t       trigger;       // 触发标志: 1=请求启动
+} S_TaskRequest_t;
+
 extern S_Comand_Ctrl_Params_t grindcar_ctrl;
+extern S_TaskRequest_t g_s_task_req;
+
 #define S_foward_time 500
 #define S_backward_time 500
 void mian_task_run (void);
