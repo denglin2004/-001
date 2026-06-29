@@ -1,6 +1,6 @@
 /******************** (C) COPYRIGHT 2017 ANO Tech ********************************
  * �ļ���    : scheduler.c
- * ��������  : ����������������̶�Ƶ��ִ�в�ͬ����?
+ * ��������  : ����������������̶�Ƶ��ִ�в��?����??
 **********************************************************************************/
 
 #include "scheduler.h"
@@ -55,7 +55,7 @@ static void Loop_100Hz(void)
  */
 static void Loop_50Hz(void)
 {
-    SafetyMonitor_Task(); 
+ //   SafetyMonitor_Task(); 
 }
 
 /**
@@ -71,27 +71,27 @@ static void Loop_20Hz(void)
  */
 static void Loop_2Hz(void)
 {
-    // // ��ʾ�̶���������
-    // SSD1306_ShowStr(0, 0, "ADRESS", 8, 0);
-    // SSD1306_ShowStr(0, 1, "FUNCTION", 8, 0);
-    // SSD1306_ShowStr(0, 2, "DATA0", 8, 0);
-    // SSD1306_ShowStr(0, 3, "DATA1", 8, 0);
-    // SSD1306_ShowStr(0, 4, "DATA2", 8, 0);
-    // SSD1306_ShowStr(0, 5, "DATA3", 8, 0);
-    // SSD1306_ShowStr(0, 6, "DATA4", 8, 0);
-    // SSD1306_ShowStr(0, 7, "DATA5", 8, 0);
+    // ��ʾ�̶���������
+    SSD1306_ShowStr(0, 0, "ADRESS", 8, 0);
+    SSD1306_ShowStr(0, 1, "FUNCTION", 8, 0);
+    SSD1306_ShowStr(0, 2, "DATA0", 8, 0);
+    SSD1306_ShowStr(0, 3, "DATA1", 8, 0);
+    SSD1306_ShowStr(0, 4, "DATA2", 8, 0);
+    SSD1306_ShowStr(0, 5, "DATA3", 8, 0);
+    SSD1306_ShowStr(0, 6, "DATA4", 8, 0);
+    SSD1306_ShowStr(0, 7, "DATA5", 8, 0);
 
-    // // ѭ����ʾESP32���յ�����
-    // for(uint8_t i = 0; i < 7; i++)
-    // {
-    //     SSD1306_ShowNum(48, i, ESP32_rx_t.ESP32_rx_buf[i+3], 6, 8, 0);
-    // }
+    // ѭ����ʾESP32���յ�����
+    for(uint8_t i = 0; i < 7; i++)
+    {
+        SSD1306_ShowNum(48, i, ESP32_rx_t.ESP32_rx_buf[i+3], 6, 8, 0);
+    }
 
     DCCP_Disp_Process();  // DCCP��ʾ����
     data_to_onnet();
 	// ��ʾ״̬��ռ�ݵ�0-2�У�
-      OLED_DisplayStatus(0);
-      // ��5-7����ʾCAN��������
+    //OLED_DisplayStatus(0);
+    // ��5-7����ʾCAN��������
 
 
     //   SSD1306_ShowStr(0, 7, "XY:", 8, 0);

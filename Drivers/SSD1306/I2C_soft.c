@@ -20,7 +20,7 @@ static void Init(void)
     //声明结构体
      GPIO_InitTypeDef GPIO_InitStructure = {0};
 
-     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOE,ENABLE);    //使能APB2 GPIO外设时钟
+     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB,ENABLE);    //使能APB2 GPIO外设时钟
 
      GPIO_InitStructure.GPIO_Pin = I2C_SCL_PIN1| I2C_SDA_PIN1;
      GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;         //设置为开漏输出模式
